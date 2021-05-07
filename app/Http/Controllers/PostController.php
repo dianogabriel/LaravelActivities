@@ -3,8 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\Post;
+use App\Models\User;
+use App\Models\Comment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Gate;
@@ -20,7 +23,10 @@ class PostController extends Controller
     public function index()
     {
         //
-        $posts = \App\Models\Post::get();
+        $user = User::find(Auth::id());
+        $posts = $user->posts;
+        
+
         return view('posts.index', compact('posts'));
     }
 
@@ -68,6 +74,7 @@ class PostController extends Controller
         $post = new Post();
         $post->title = $request->title;
         $post->description = $request->description;
+        $post->user_id = Auth::id();
         $post->img = $filenameToStore;
         $post->save();
 
@@ -88,7 +95,10 @@ class PostController extends Controller
     public function show(Post $post)
     {
         //
-        return view('posts.show', compact('post'));
+        $post = Post::find($post->id);
+        $comments = $post->comments;
+        return view('posts.show', compact('post', 'comments'));
+        
     }
 
     /**
@@ -156,5 +166,29 @@ class PostController extends Controller
         $post->delete();
 
         return redirect('/posts');
+    }
+
+    public function archive()
+    {
+        $posts = Post::onlyTrashed()->get();
+
+        return view('posts.archive'.compact('posts'));
+
+    }
+
+    public function restore($id)
+    {
+        $posts = Post::withTrashed()->find($id)->restore();
+
+        return view('/posts');
+        
+    }
+
+    public function deleteBlank()
+    {
+        $posts = Post::where('title','=','')->delete();
+
+        return view('/posts');
+        
     }
 }
